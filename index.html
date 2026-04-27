@@ -608,18 +608,79 @@ function buildConfirm(){
 function cr(k,v,c){return`<div class="cp-row"><span class="cp-key">${k}</span><span class="cp-val" style="${c?'color:'+c:''}">${v}</span></div>`;}
 
 /* submit */
-function submitBooking(){
-  document.getElementById('appWrap').style.display='none';
-  document.getElementById('topHero').style.display='none';
-  const sw=document.getElementById('successWrap');
-  sw.classList.add('show');
-  const price=S.type==='1-on-1 Training'?'$60 at session':S.type==='Group Session'?'$'+(25*S.players)+' at session':S.type==='Monthly Pass'?'$150 at session':'$'+(20*S.players)+' at session';
-  document.getElementById('successCard').innerHTML=`
-    ${cr('Name',S.fn+' '+S.ln)}${cr('Session',S.type)}${cr('Court',S.court)}${cr('Date',S.date)}${cr('Time',S.time)}${cr('Payment',price,'var(--or)')}
-  `;
-  window.scrollTo({top:0,behavior:'smooth'});
-  const body=encodeURIComponent(`NEW ROAMING SKILLS LAB BOOKING\n\nName: ${S.fn} ${S.ln}\nEmail: ${S.em}\nPhone: ${S.ph}\nSession: ${S.type}\nPlayers: ${S.players}\nCourt: ${S.court}\nDate: ${S.date}\nTime: ${S.time}\nSkill Level: ${S.sk}\nGoals: ${S.gl||'Not specified'}\nPhoto consent: ${document.getElementById('pc').checked?'Yes':'No'}`);
-  setTimeout(()=>{window.location.href=`mailto:info@roamingskillslab.ca?subject=New Booking — ${S.fn} ${S.ln} — ${S.date}&body=${body}`;},1800);
+async function submitBooking(){
+  // ─────────────────────────────────────────────────────────────
+  // STEP 1: Paste your Formspree endpoint URL below.
+  // Go to formspree.io → create a free account → New Form →
+  // copy the endpoint (looks like https://formspree.io/f/xyzabcde)
+  // and replace the placeholder below.
+  // ─────────────────────────────────────────────────────────────
+  const FORMSPREE_URL = 'https://formspree.io/f/xvzdjgbr';
+
+  // disable button + show loading state
+  const btn = document.getElementById('s5btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending your booking...';
+
+  const price = S.type==='1-on-1 Training' ? '$60 at session'
+    : S.type==='Group Session' ? '$'+(25*S.players)+' at session'
+    : S.type==='Monthly Pass' ? '$150 at session'
+    : '$'+(20*S.players)+' at session';
+
+  const payload = {
+    _subject: `New Booking — ${S.fn} ${S.ln} — ${S.date} at ${S.time}`,
+    Name:         S.fn + ' ' + S.ln,
+    Email:        S.em,
+    Phone:        S.ph,
+    Session_Type: S.type,
+    Players:      S.players,
+    Court:        S.court,
+    Date:         S.date,
+    Time:         S.time,
+    Skill_Level:  S.sk,
+    Goals:        S.gl || 'Not specified',
+    Payment_Due:  price,
+    Photo_Consent: document.getElementById('pc').checked ? 'Yes' : 'No'
+  };
+
+  try {
+    const res = await fetch(FORMSPREE_URL, {
+      method:  'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      // ── SUCCESS ──
+      document.getElementById('appWrap').style.display = 'none';
+      document.getElementById('topHero').style.display = 'none';
+      const sw = document.getElementById('successWrap');
+      sw.classList.add('show');
+      document.getElementById('successCard').innerHTML = `
+        ${cr('Name',    S.fn+' '+S.ln)}
+        ${cr('Session', S.type)}
+        ${cr('Court',   S.court)}
+        ${cr('Date',    S.date)}
+        ${cr('Time',    S.time)}
+        ${cr('Payment', price, 'var(--or)')}
+      `;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Formspree returned an error — show message
+      btn.disabled = false;
+      btn.textContent = '🏀 Confirm My Session';
+      alert('Something went wrong submitting your booking. Please screenshot this page and send it to us directly on Instagram @roamingskillslab or by email.');
+    }
+  } catch (err) {
+    // Network error (e.g. Formspree URL not set yet)
+    btn.disabled = false;
+    btn.textContent = '🏀 Confirm My Session';
+    if (FORMSPREE_URL.includes('YOUR_FORM_ID')) {
+      alert('⚠️ Setup needed: The Formspree URL has not been configured yet. Open index.html in a text editor, find the line that says FORMSPREE_URL, and paste in your Formspree endpoint. See the setup guide for instructions.');
+    } else {
+      alert('Network error — please check your internet connection and try again.');
+    }
+  }
 }
 
 /* share */
